@@ -1,1 +1,2 @@
-echo -e "logs/\nstate/\n*.pid" > /data/adb/modules/SysTune/.gitignore
+logs/
+state/
