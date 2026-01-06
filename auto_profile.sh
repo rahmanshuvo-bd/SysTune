@@ -46,13 +46,10 @@ CPU_LOAD=$(awk '/^cpu / {u=($2+$4)*100/($2+$4+$5); printf "%.0f\n",u}' /proc/sta
 [ -z "$CPU_LOAD" ] && CPU_LOAD=0
 
 # ---------- Decide profile ----------
-if [ "$BATTERY" -le 25 ]; then
+if [ "$BATTERY" -le 30 ]; then
     NEW_PROFILE="battery_saver"
-elif [ "$CPU_LOAD" -gt 81 ]; then
+elif [ "$BATTERY" -gt 81 ]; then
     NEW_PROFILE="performance"
-elif [ "$BATTERY" -le 50 ]; then
-    NEW_PROFILE="balanced"
-
 elif [ "$BATTERY" -le 80 ]; then
     NEW_PROFILE="balanced_smooth"
 else
