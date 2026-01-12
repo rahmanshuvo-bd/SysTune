@@ -1,95 +1,103 @@
 # SysTune
 
-**Author:** Rahman Shuvo  
+**Author:** Polymath-Void  
 **Tested on:** Nothing Phone 2a (MediaTek)
 
----
-
-## Overview
-
-SysTune is a Termux + root-based system management suite for Mediatek Android devices.  
-It provides fine-grained control over charging behavior, automatic system profiles, and real-time monitoring.
-
-SysTune consists of three main modules:
-
-1. **Battery Safe (`battery_safe.sh`)**  
-   - Safely manages charging to extend battery life by pausing and resuming charging at configurable thresholds (80%, 90%, 95%, 100%).  
-   - Uses kernel-level control, logging, and a status file for tracking.  
-
-2. **Auto Profile (`auto_profile.sh`)**  
-   - Automatically switches Termux/system profiles based on battery level or custom triggers.  
-   - Profiles are defined in `/data/adb/modules/SysTune/config/profile.conf`.  
-   - Status is tracked in `/data/adb/modules/SysTune/state/auto_profile.status`.  
-
-3. **Terminal Monitor (`sys_monitor.sh`)**  
-   - Provides a live terminal-based dashboard showing CPU, memory, battery, and module activity.  
-   - Integrates with both Battery Safe and Auto Profile for centralized system status monitoring.  
+SysTune is a Termux + root-based system management suite for MediaTek Android devices. It provides fine-grained control over **battery charging, automatic profile switching, performance efficiency, runtime optimization, and real-time monitoring**. SysTune ensures **battery safety, performance stability, and optimized runtime behavior** without user intervention.
 
 ---
 
-## Features
+## Modules & Features
 
-- Kernel-level battery charging control (safe, prevents rapid on/off cycles)  
-- Pause/resume charging at configurable battery levels  
-- Hard stop at 100% battery  
-- Automatic profile switching based on triggers  
-- Real-time system monitoring in terminal  
-- Detailed logging and status files for each module  
-- Git-tracked project for version control  
+### Battery Safe (`battery_safe.sh`)
+- Safely manages charging thresholds (80%, 90%, 95%, 100%)  
+- Thermal guard prevents overheating with hysteresis logic  
+- Zero-fork implementation; reads/writes kernel nodes directly  
+- Logs and atomic state tracking  
+- Automatic trigger when charger is connected
+
+### Auto Profile (`auto_profile.sh`)
+- Switches system/Termux profiles automatically based on battery or custom triggers  
+- Configurable via `/data/adb/modules/SysTune/config/profile.conf`  
+- Works with Battery Safe & performance tuning  
+- Logs and state tracking
+
+### Terminal Monitor (`sys_monitor.sh`)
+- Live terminal dashboard showing CPU, memory, battery, and module activity  
+- Centralized view of Battery Safe & Auto Profile  
+- Useful for debugging and monitoring module activity
+
+### Performance Efficiency (`perf_efficiency.sh`)
+- Dynamically balances CPU/GPU performance vs efficiency  
+- Load-based scaling prevents battery drain while maintaining responsiveness  
+- Works with Auto Profile for profile-specific tuning
+
+### Runtime Optimizer (`optimize_runtime.sh`)
+- Monitors RAM, background processes, and memory pressure  
+- Adjusts Low Memory Killer (LMK) minfree to prevent aggressive OOM kills  
+- Throttles background tasks when battery is low or thermal limits are reached
+
+---
+
+## Features Table
+
+| Feature | Battery Safe | Auto Profile | Terminal Monitor | Perf Efficiency | Runtime Optimizer |
+|---------|:------------:|:------------:|:----------------:|:---------------:|:----------------:|
+| Charging Threshold Control | ✅ |  |  |  |  |
+| Thermal Protection | ✅ |  |  |  |  |
+| Zero-Fork Implementation | ✅ |  |  |  |  |
+| Automatic Profile Switching |  | ✅ |  |  |  |
+| CPU/GPU Scaling Optimization |  |  |  | ✅ |  |
+| Runtime Memory Optimization |  |  |  |  | ✅ |
+| Real-Time Terminal Monitoring |  |  | ✅ |  |  |
+| Atomic State Tracking | ✅ | ✅ |  | ✅ | ✅ |
+| Logs for Debugging | ✅ | ✅ |  | ✅ | ✅ |
 
 ---
 
 ## Installation
 
-1. Clone the repository (example path):
-
+**Option 1: Clone & Install**  
+```bash
 git clone https://github.com/rahmanshuvo-bd/SysTune.git ~/SysTune
-
-and move or copy SysTune directory to "/data/adb/modules"
-
-Or just check last release, just download the module as zip and flash via Magisk KSU.
-
-For clone(:-:)
-Grant execution permissions:
-Bash
-cd ~/SysTune
+mv ~/SysTune /data/adb/modules/
+cd /data/adb/modules/SysTune
 chmod +x *.sh
 
-**Usage Notes:**
-If you flashed the zip via KSU or Magisk, just relax rest of the things scripts do automatically.
+Option 2: 
+-* Flash via Magisk/KSU
+-* Download the latest zip release
+-* Flash via Magisk or KernelSU
+Scripts start automatically on boot or when charger is connected
 
-#Manual user
-
-*Battery Safe*
-
+# Usage
+Battery Safe:
 Bash
-su -c "/data/adb/modules/SysTune/battery_safe.sh"
+su -c "/data/adb/modules/SysTune/battery_safe.sh" 
 
-* Automatically starts when charger is connected.
-* Monitors battery every 15 seconds.
-* Pauses/resumes charging at 80%, 90%, 95%, and resume till the charger connected.
-* Logs and status files:
-** /data/adb/modules/SysTune/logs/battery_safe.log
-** /data/adb/modules/SysTune/state/battery_safe.status
-
-*Auto Profile*
-
+Auto Profile:
 Bash
 su -c "/data/adb/modules/SysTune/auto_profile.sh"
 
-* Automatically switches profiles based on triggers.
-* Logs and status files:
-** /data/adb/modules/SysTune/logs/auto_profile.log
-** /data/adb/modules/SysTune/state/auto_profile.status
-
-*Terminal Monitor*
-
+Terminal Monitor:
 Bash
 su -c "/data/adb/modules/SysTune/sys_monitor.sh"
 
-* Provides live system metrics and module status.
-* Useful for debugging and monitoring Battery Safe / Auto Profile activities.
 
-**License**
+Performance Efficiency & Runtime Optimizer run automatically with profiles or can be triggered manually.
 
-MIT License
+Benefits
+** Battery Safety: Pause/resume charging at configurable thresholds; hard stop at 100%
+** Thermal Protection: Avoids overheating with zero-fork, kernel-level monitoring
+** Performance Efficiency: Optimizes CPU/GPU scaling without user intervention
+** Runtime Optimization: Adjusts memory management to prevent crashes or slowdowns
+** Automatic Profile Switching: System adapts to battery level or custom triggers
+** Real-Time Monitoring: Terminal dashboard with centralized metrics
+** Zero-Fork Architecture: Reduces CPU wakeups and avoids unnecessary process spawning
+** Detailed Logging: All modules maintain state and logs for debugging and analysis
+
+
+# License
+MIT License. Free to use, modify, and distribute. Contributions are welcome.
+
+~•Polymath-Void•~
