@@ -110,20 +110,21 @@ esac
 
 # ---------- PERF EFFICIENCY TWEAKS ----------
 PERF_TWEAKS="/data/adb/modules/SysTune/perf_efficiency.sh"
-if [ -f "$PERF_TWEAKS" ] && [ -x "$PERF_TWEAKS" ]; then
-    echo "[apply.sh] Applying perf efficiency tweaks for profile: $PROFILE"
-    sh "$PERF_TWEAKS" "$PROFILE"
+if [ -f "$PERF_TWEAKS" ]; then
+    echo "[apply.sh] Executing Perf Efficiency: $PROFILE"
+    # Use 'sh' to bypass +x requirement, but redirect errors to service log
+    /system/bin/sh "$PERF_TWEAKS" "$PROFILE" >> /data/adb/modules/SysTune/logs/service.log 2>&1
 else
-    echo "[apply.sh] Perf efficiency script missing or not executable"
+    echo "[apply.sh] ERROR: $PERF_TWEAKS not found" >> /data/adb/modules/SysTune/logs/service.log
 fi
 
 # ---------- RUNTIME OPTIMIZATION ----------
 RUNTIME_OPT="/data/adb/modules/SysTune/optimize_runtime.sh"
-if [ -f "$RUNTIME_OPT" ] && [ -x "$RUNTIME_OPT" ]; then
-    echo "[apply.sh] Applying runtime optimizations for profile: $PROFILE"
-    sh "$RUNTIME_OPT" "$PROFILE"
+if [ -f "$RUNTIME_OPT" ]; then
+    echo "[apply.sh] Executing Runtime Optimization: $PROFILE"
+    /system/bin/sh "$RUNTIME_OPT" "$PROFILE" >> /data/adb/modules/SysTune/logs/service.log 2>&1
 else
-    echo "[apply.sh] Runtime optimization script missing or not executable"
+    echo "[apply.sh] ERROR: $RUNTIME_OPT not found" >> /data/adb/modules/SysTune/logs/service.log
 fi
 
 exit 0

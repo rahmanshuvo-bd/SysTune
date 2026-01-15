@@ -84,14 +84,19 @@ for queue in /sys/block/sd*/queue /sys/block/mmcblk*/queue; do
 done
 
 # ----------------------------------------------------------
-# 4. Display Refresh Rate (Java VM Fork Guard)
+# 4. Display Refresh Rate (Service Guarded)
 # ----------------------------------------------------------
-# 'settings' is expensive. Only call if a change is needed.
-CUR_PEAK=$(settings get system peak_refresh_rate 2>/dev/null)
-if [ "$CUR_PEAK" != "$PEAK" ]; then
-    settings put system peak_refresh_rate "$PEAK"
-    settings put system min_refresh_rate "$MIN"
-    log "Display set to ${PEAK}Hz"
+# Use 'service check' to ensure the Settings provider is ready
+
+if service check settings | grep -q "found"; then
+    CUR_PEAK=$(settings get system peak_refresh_rate 2>/dev/null)
+    if [ "$CUR_PEAK" != "$PEAK" ]; then
+        settings put system peak_refresh_rate "$PEAK"
+        settings put system min_refresh_rate "$MIN"
+        log "Display set to ${PEAK}Hz"
+    fi
+else
+    log "SKIP: settings service not ready"
 fi
 
 log "===== Perf efficiency applied successfully ====="

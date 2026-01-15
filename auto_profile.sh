@@ -1,60 +1,60 @@
 #!/system/bin/sh
-# SysTune Auto Profile Worker v3.3 (Absolute Zero-Fork)
+# SysTune Auto Profile Worker v4.5
+# Edge-triggered, idempotent, kernel-safe
 
-# 1. Environment Anchor
-[ -z "$SYS" ] && SYS="/data/adb/modules/SysTune"
-STATUS_FILE="$SYS/state/auto_profile.status"
-APPLY="$SYS/apply.sh"
+SYS="${SYS:-/data/adb/modules/SysTune}"
+STATE_DIR="$SYS/state"
+STATE="$STATE_DIR/auto_profile.status"
+LAST_PROFILE_FILE="$STATE_DIR/last_profile"
+LOG="$SYS/logs/auto_profile.log"
 
-# Fallback for variables
-[ -z "$CUR_BAT" ] && CUR_BAT=$(cat /sys/class/power_supply/battery/capacity 2>/dev/null || echo 50)
+mkdir -p "$STATE_DIR"
 
-# 2. Pure Shell Contract Read (Zero Forks)
-RAW_LINE=""
-if [ -f "$STATUS_FILE" ]; then
-    # Redirecting file into read built-in avoids spawning 'head'
-    IFS= read -r RAW_LINE < "$STATUS_FILE"
-fi
-LAST_PROFILE="${RAW_LINE#* }" 
-
-# 3. Zone Decision Logic with 2% Buffer (Hysteresis)
-# High: 81% / Low: 30%
-if [ "$CUR_BAT" -le 30 ]; then
-    NEW_PROFILE="battery_saver"
-elif [ "$CUR_BAT" -ge 81 ]; then
-    NEW_PROFILE="performance"
-elif [ "$LAST_PROFILE" = "performance" ] && [ "$CUR_BAT" -ge 79 ]; then
-    # Buffer: Stay in performance until drop to 78%
-    NEW_PROFILE="performance"
-elif [ "$LAST_PROFILE" = "battery_saver" ] && [ "$CUR_BAT" -le 32 ]; then
-    # Buffer: Stay in saver until rise to 33%
-    NEW_PROFILE="battery_saver"
-else
+# Manual fallback
+if [ -z "$NEW_PROFILE" ]; then
     NEW_PROFILE="balanced_smooth"
+    CUR_BAT="$(cat /sys/class/power_supply/battery/capacity 2>/dev/null || echo 0)"
 fi
 
-# 4. Escape Hatch
+# Read last applied profile (if any)
+LAST_PROFILE="$(cat "$LAST_PROFILE_FILE" 2>/dev/null)"
+
+# ---------- EDGE TRIGGER ----------
 if [ "$NEW_PROFILE" = "$LAST_PROFILE" ]; then
-    return 0 2>/dev/null || exit 0
+    # Nothing changed → exit silently
+    exit 0
 fi
+# ---------------------------------
 
-# 5. Apply & Atomic State Update
-if [ -x "$APPLY" ]; then
-    echo "[$(date '+%H:%M:%S')] Transition: ${LAST_PROFILE:-INIT} -> $NEW_PROFILE" >> "$SYS/logs/service.log"
-    
-    # Speed is priority: source the apply logic
-    . "$APPLY" "$NEW_PROFILE"
+# CPU scaling function
+set_cpu() {
+    local gov="$1" max="$2"
+    for p in /sys/devices/system/cpu/cpufreq/policy*; do
+        echo "$gov" > "$p/scaling_governor" 2>/dev/null
+        if [ "$max" -eq 0 ]; then
+            cat "$p/cpuinfo_max_freq" > "$p/scaling_max_freq" 2>/dev/null
+        else
+            echo "$max" > "$p/scaling_max_freq" 2>/dev/null
+        fi
+    done
+}
 
-    # Atomic Write (Observable Contract)
-    TMP_STAT="$STATUS_FILE.tmp"
-    {
-        echo "Profile: $NEW_PROFILE"
-        echo "Battery: $CUR_BAT%"
-        echo "Status: ${CUR_STAT:-Unknown}"
-        echo "Timestamp: $(date +%s)"
-    } > "$TMP_STAT"
-    
-    mv -f "$TMP_STAT" "$STATUS_FILE"
-fi
+# Apply profile
+case "$NEW_PROFILE" in
+    battery_saver)     set_cpu "schedutil" 800000 ;;
+    balanced_smooth)  set_cpu "schedutil" 1600000 ;;
+    performance)      set_cpu "schedutil" 0 ;;
+    *) exit 0 ;;
+esac
 
-return 0 2>/dev/null || exit 0
+# Persist state atomically
+{
+    echo "Profile: $NEW_PROFILE"
+    echo "Battery: $CUR_BAT"
+    echo "Timestamp: $(date +%s)"
+} > "$STATE.tmp" && mv -f "$STATE.tmp" "$STATE"
+
+echo "$NEW_PROFILE" > "$LAST_PROFILE_FILE"
+chmod 644 "$STATE" "$LAST_PROFILE_FILE"
+
+echo "[$(date '+%H:%M:%S')] Applied $NEW_PROFILE at ${CUR_BAT}%" >> "$LOG"

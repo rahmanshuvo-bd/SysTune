@@ -18,17 +18,40 @@ log() {
 log "Applying runtime optimizations for profile: $PROFILE"
 
 # ----------------------------------------------------------
-# 1. App Control Logic
+# 1. App Control Logic (Hardened for Boot-time Stability)
 # ----------------------------------------------------------
 
-# Use appops instead of pm disable where possible to avoid broadcast storms
+# ----------------------------------------------------------
+# 1. App Control Logic (Hardened for Boot-time Stability)
+# ----------------------------------------------------------
+
 SET_APP_RESTRICTION() {
-    local mode="$2" # ignore or allow
-    for pkg in $1; do
-        cmd appops set "$pkg" RUN_IN_BACKGROUND "$mode" 2>/dev/null
-        cmd appops set "$pkg" WAKE_LOCK "$mode" 2>/dev/null
+    local pkgs="$1"
+    local mode="$2"
+
+    # Use the 'service' binary directly - more robust across ROMs
+    if ! service check appops | grep -q "found"; then
+        log "SKIP: appops service not ready"
+        return 1
+    fi
+
+    log "Applying AppOps: $mode"
+
+    for pkg in $pkgs; do
+        # tr ensures newlines/spaces from the BLOAT_APPS block don't break the command
+        pkg_clean=$(echo "$pkg" | tr -d '[:space:]')
+        [ -z "$pkg_clean" ] && continue
+        
+        # Standard AppOps call
+        cmd appops set "$pkg_clean" RUN_IN_BACKGROUND "$mode" 2>/dev/null
+        
+        if [ "$PROFILE" = "battery_saver" ]; then
+            cmd appops set "$pkg_clean" WAKE_LOCK "$mode" 2>/dev/null
+        fi
     done
 }
+
+
 
 BLOAT_APPS="
 com.facebook.katana
@@ -38,6 +61,19 @@ com.facebook.system
 com.miui.analytics
 com.google.android.feedback
 com.google.android.printservice.recommendation
+com.bikroy
+org.xbet.client1
+com.facebook.lite
+com.facebook.orca
+prod.app_ku9bdtf1.com
+net.omobio.robisc
+com.arena.banglalinkmela.app
+com.konasl.nagad
+com.bKash.customerapp
+com.feralinteractive.laracroftgol_android
+app.revanced.android.gms
+com.mxtech.videoplayer.pro
+io.metamask
 "
 
 # ----------------------------------------------------------

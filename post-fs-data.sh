@@ -1,8 +1,12 @@
 #!/system/bin/sh
-# SysTune Boot Anchor
-# Fix permissions at every boot
+# SysTune Early Unlock (post-fs-data.sh)
+FBT_UC="/sys/kernel/fpsgo/fbt_cam/fbt_cam_uclamp_boost_enable"
+FBT_PID="/sys/kernel/fpsgo/fbt/fbt_attr_by_pid"
+FPSGO_PID="/sys/kernel/fpsgo/composer/fpsgo_control_pid"
 
-chown -R root:root /data/adb/modules/SysTune && chmod -R 755 /data/adb/modules/SysTune
-
-# Launch the daemon into the Global Namespace
-/system/bin/sh /data/adb/modules/SysTune/service.sh --daemon &
+for node in "$FBT_UC" "$FBT_PID" "$FPSGO_PID"; do
+    if [ -e "$node" ]; then
+        chmod 666 "$node"
+        chcon u:object_r:sysfs:s0 "$node" 2>/dev/null
+    fi
+done
